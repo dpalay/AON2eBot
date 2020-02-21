@@ -113,11 +113,15 @@ client.on("message", async (message) => {
   let results = await searchFor(content);
   switch (results.type) {
     case "success":
+      message.channel.startTyping()
       message.channel
         .send(results.result, { split: true })
         .catch((error) => console.error(error));
+      message.channel.stopTyping()
       break;
     case "multipleExact":
+      
+      message.channel.startTyping()
       await message.reply(`Multiple Matches, please select one:`);
       message.channel
         .send(
@@ -129,6 +133,7 @@ client.on("message", async (message) => {
           { split: true }
         )
         .then(() => {
+          message.channel.stopTyping()
           message.channel
             .awaitMessages(
               (response: Discord.Message) => {
@@ -141,12 +146,14 @@ client.on("message", async (message) => {
               { maxMatches: 1, errors: ["time"], time: 20000 }
             )
             .then(async (collected) => {
+              message.channel.startTyping()
               let { result } = await getDirect(
                 results.options[parseInt(collected.first().content) - 1].link
               );
-              message.channel
+              await message.channel
                 .send(result, { split: true })
                 .catch((error) => console.error(error));
+              message.channel.stopTyping()
             })
             .catch((error) => console.error(error));
         })
