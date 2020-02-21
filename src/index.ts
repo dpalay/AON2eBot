@@ -89,7 +89,7 @@ client.on("message", async message => {
   switch(results.type){
     case "success":
         message.channel
-        .send(results,{split:true})
+        .send(results.result,{split:true})
         .catch(error => console.error(error));
       break;
     case "multipleExact":
