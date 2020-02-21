@@ -108,3 +108,7 @@ bin
 
 # Firebase Key
 secret
+
+# Scratch
+scratchpad/
+.vscode/
