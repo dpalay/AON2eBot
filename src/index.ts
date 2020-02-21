@@ -40,16 +40,7 @@ const getPage = async (search: string): Promise<{result: string, type: string, o
         .contents()
         .get(0).data == "Exact Match"
     ) {
-        // TODO: Check # of exact matches:
-        /*
-        if (exactly one one){
-            forward to the 1, get data, return mkdown
-        }
-        else {
-            //  more than 1 exact match
-            get the list of matches and return it with a status code "waiting for input" and the list of options
-        }
-        */
+        
       console.log("exact match");
       let link = $("#ctl00_MainContent_SearchOutput a").get(0).attribs.href;
       res = await fetch(`http://2e.aonprd.com/${link}`);
@@ -58,7 +49,17 @@ const getPage = async (search: string): Promise<{result: string, type: string, o
       let html = $("#ctl00_MainContent_DetailedOutput").html() || "error";
       let mkdown = td.turndown(html);
       return {result: mkdown, type: "success"};
-    } else {
+    } else if (
+        //  more than 1 exact match
+        $("#ctl00_MainContent_SearchOutput b")
+          .contents()
+          .get(0).data == "Exact Matches"
+      ) {
+        let matches = $("#ctl00_MainContent_SearchOutput b u").nextUntil('h1').find('a').toArray()
+          // get the list of matches and return it with a status code "waiting for input" and the list of options
+          return {result: "multiple", type:"multipleExact",options: matches.map((node, i) =>{ return {text: node.children[0].data ,links: node.attribs.href}} )}
+      }
+          else{
       // No exact matches found!
       //get the list of matches and return it with a status code "waiting for input" and the list of options
       return {result: "Nothing found", type:"No Exact Match"};
@@ -85,9 +86,23 @@ client.on("message", async message => {
     .catch(error => console.error(error));
   let content = message.content.slice(1);
   let results = await getPage(content);
-  message.channel
-    .send(results,{split:true})
-    .catch(error => console.error(error));
+  switch(results.type){
+    case "success":
+        message.channel
+        .send(results,{split:true})
+        .catch(error => console.error(error));
+      break;
+    case "multipleExact":
+        message.channel.send("Multiple Extact Matches").catch(error => console.error(error));
+        // send list of matches, wait for response.
+      break;
+    case "error":
+        message.channel.send(`Error: error in try/catch from ${content}`).catch(error => console.error(error));
+    default:
+        message.channel.send(`Error: Nonstandard response type for ${content}`).catch(error => console.error(error));
+    
+  }
+
 });
 
 client.login(DISCORD.TOKEN);
