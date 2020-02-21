@@ -16,5 +16,5 @@ dotenv.config({ path: path });
 
 export const DISCORD = {
     TOKEN: process.env.DISCORDTOKEN,
-    CONTROLCHAR: "!"
+    PREFIX: "!"
 }

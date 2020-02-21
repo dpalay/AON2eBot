@@ -4,7 +4,7 @@ import { DISCORD } from "./config";
 import turndown from "turndown";
 import cheerio from "cheerio";
 
-const controlChar = DISCORD.CONTROLCHAR;
+const prefix = DISCORD.PREFIX;
 const client = new Discord.Client();
 let td = new turndown({
   hr: `================================================`
@@ -79,12 +79,12 @@ client.on("message", async message => {
   // ignore DMs and ignore other bots
   if (!message.guild || message.author.bot) return;
   // ignore without control character
-  if (!message.content.startsWith(`${controlChar}`)) return;
+  if (!message.content.startsWith(`${prefix}`)) return;
   //Message starts with control character (default "!")
+  let content = message.content.slice(prefix.length);
   message.channel
-    .send(`Getting ${message.content.slice(1)}`)
+    .send(`Getting ${content}`)
     .catch(error => console.error(error));
-  let content = message.content.slice(1);
   let results = await getPage(content);
   switch(results.type){
     case "success":
