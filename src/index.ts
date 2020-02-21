@@ -30,7 +30,7 @@ td.addRule("spans", {
   });
 
 
-const getPage = async (search: string) => {
+const getPage = async (search: string): Promise<{result: string, type: string, options?: {}}> => {
   try {
     let res = await fetch(`http://2e.aonprd.com/Search.aspx?query=${search}`);
     let body: string = await res.text();
@@ -40,6 +40,16 @@ const getPage = async (search: string) => {
         .contents()
         .get(0).data == "Exact Match"
     ) {
+        // TODO: Check # of exact matches:
+        /*
+        if (exactly one one){
+            forward to the 1, get data, return mkdown
+        }
+        else {
+            //  more than 1 exact match
+            get the list of matches and return it with a status code "waiting for input" and the list of options
+        }
+        */
       console.log("exact match");
       let link = $("#ctl00_MainContent_SearchOutput a").get(0).attribs.href;
       res = await fetch(`http://2e.aonprd.com/${link}`);
@@ -47,14 +57,14 @@ const getPage = async (search: string) => {
       $ = cheerio.load(body);
       let html = $("#ctl00_MainContent_DetailedOutput").html() || "error";
       let mkdown = td.turndown(html);
-      // what if it's too long?
-      return mkdown;
+      return {result: mkdown, type: "success"};
     } else {
-      // No match found!
-      return "Nothing found";
+      // No exact matches found!
+      //get the list of matches and return it with a status code "waiting for input" and the list of options
+      return {result: "Nothing found", type:"No Exact Match"};
     }
   } catch (error) {
-    return error;
+    return {result: error, type: "error"};
   }
 };
 
