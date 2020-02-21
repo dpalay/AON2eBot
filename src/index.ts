@@ -29,8 +29,16 @@ td.addRule("spans", {
     }
   });
 
+const getDirect = async (link: string): Promise<{result: string, type: string, options: {text: string, link: string}[]}> => {
+  let res = await fetch(`http://2e.aonprd.com/${link}`);
+  let body = await res.text();
+  let $ = cheerio.load(body);
+  let html = $("#ctl00_MainContent_DetailedOutput").html() || "error";
+  let mkdown = td.turndown(html);
+  return {result: mkdown, type: "success", options: []};
+}
 
-const getPage = async (search: string): Promise<{result: string, type: string, options?: {text?: string, link?: string}[]}> => {
+const searchFor = async (search: string): Promise<{result: string, type: string, options: {text?: string, link: string}[]}> => {
   try {
     let res = await fetch(`http://2e.aonprd.com/Search.aspx?query=${search}`);
     let body: string = await res.text();
@@ -40,32 +48,26 @@ const getPage = async (search: string): Promise<{result: string, type: string, o
         .contents()
         .get(0).data == "Exact Match"
     ) {
-        
       console.log("exact match");
       let link = $("#ctl00_MainContent_SearchOutput a").get(0).attribs.href;
-      res = await fetch(`http://2e.aonprd.com/${link}`);
-      body = await res.text();
-      $ = cheerio.load(body);
-      let html = $("#ctl00_MainContent_DetailedOutput").html() || "error";
-      let mkdown = td.turndown(html);
-      return {result: mkdown, type: "success"};
+      return getDirect(link);
     } else if (
         //  more than 1 exact match
         $("#ctl00_MainContent_SearchOutput b")
           .contents()
           .get(0).data == "Exact Matches"
       ) {
-        let matches = $("#ctl00_MainContent_SearchOutput b u").nextUntil('h1').find('a').toArray()
+        let matches = $("#ctl00_MainContent_SearchOutput b").nextUntil('h1').find('a').toArray()
           // get the list of matches and return it with a status code "waiting for input" and the list of options
-          return {result: "multiple", type:"multipleExact",options: matches.map((node, i): {text?: string, link?: string} =>{ return {text: node.children[0].data ,link: node.attribs.href}} )}
+          return {result: "multiple", type:"multipleExact",options: matches.map((node, i): {text: string, link: string} =>{ return {text: node.children[0].data || "ERROR" ,link: node.attribs.href}} )}
       }
           else{
       // No exact matches found!
       //get the list of matches and return it with a status code "waiting for input" and the list of options
-      return {result: "Nothing found", type:"No Exact Match"};
+      return {result: "Nothing found", type:"No Exact Match", options: []};
     }
   } catch (error) {
-    return {result: error, type: "error"};
+    return {result: error, type: "error", options: []};
   }
 };
 
@@ -85,7 +87,7 @@ client.on("message", async message => {
   message.channel
     .send(`Getting ${content}`)
     .catch(error => console.error(error));
-  let results = await getPage(content);
+  let results = await searchFor(content);
   switch(results.type){
     case "success":
         message.channel
@@ -93,7 +95,18 @@ client.on("message", async message => {
         .catch(error => console.error(error));
       break;
     case "multipleExact":
-        message.channel.send(results.options).catch(error => console.error(error));
+        await message.reply(`Multiple Matches, please select one:`)
+        message.channel.send(results.options?.map((result, i):string => {
+          return `${i+1}: ${result.text}`
+        }).join('\n'),{split:true}).then(() => {
+          message.channel.awaitMessages((message: Discord.Message) => {return parseInt(message.content)>0 && parseInt(message.content) < (results.options.length) }, {maxMatches: 1,errors:['time'], time: 20000}).then(
+           async (collected) => {
+              let {result} = await getDirect(results.options[parseInt(collected.first().content)-1].link)
+              message.channel.send(result, {split: true}).catch(error => console.error(error))
+            }
+          )
+          .catch(error => console.error(error))
+        }).catch(error => console.error(error));
         // send list of matches, wait for response.
       break;
     case "error":
