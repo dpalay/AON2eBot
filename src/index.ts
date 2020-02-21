@@ -30,7 +30,7 @@ td.addRule("spans", {
   });
 
 
-const getPage = async (search: string): Promise<{result: string, type: string, options?: {}}> => {
+const getPage = async (search: string): Promise<{result: string, type: string, options?: {text?: string, link?: string}[]}> => {
   try {
     let res = await fetch(`http://2e.aonprd.com/Search.aspx?query=${search}`);
     let body: string = await res.text();
@@ -57,7 +57,7 @@ const getPage = async (search: string): Promise<{result: string, type: string, o
       ) {
         let matches = $("#ctl00_MainContent_SearchOutput b u").nextUntil('h1').find('a').toArray()
           // get the list of matches and return it with a status code "waiting for input" and the list of options
-          return {result: "multiple", type:"multipleExact",options: matches.map((node, i) =>{ return {text: node.children[0].data ,links: node.attribs.href}} )}
+          return {result: "multiple", type:"multipleExact",options: matches.map((node, i): {text?: string, link?: string} =>{ return {text: node.children[0].data ,link: node.attribs.href}} )}
       }
           else{
       // No exact matches found!
@@ -93,7 +93,7 @@ client.on("message", async message => {
         .catch(error => console.error(error));
       break;
     case "multipleExact":
-        message.channel.send("Multiple Extact Matches").catch(error => console.error(error));
+        message.channel.send(results.options).catch(error => console.error(error));
         // send list of matches, wait for response.
       break;
     case "error":
