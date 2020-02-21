@@ -99,7 +99,9 @@ client.on("message", async message => {
         message.channel.send(results.options?.map((result, i):string => {
           return `${i+1}: ${result.text}`
         }).join('\n'),{split:true}).then(() => {
-          message.channel.awaitMessages((message: Discord.Message) => {return parseInt(message.content)>0 && parseInt(message.content) < (results.options.length) }, {maxMatches: 1,errors:['time'], time: 20000}).then(
+          message.channel.awaitMessages(
+            (response: Discord.Message) => {
+            return response.author == message.author &&  parseInt(response.content)>0 && parseInt(response.content) <= (results.options.length) }, {maxMatches: 1,errors:['time'], time: 20000}).then(
            async (collected) => {
               let {result} = await getDirect(results.options[parseInt(collected.first().content)-1].link)
               message.channel.send(result, {split: true}).catch(error => console.error(error))
@@ -107,7 +109,6 @@ client.on("message", async message => {
           )
           .catch(error => console.error(error))
         }).catch(error => console.error(error));
-        // send list of matches, wait for response.
       break;
     case "error":
         message.channel.send(`Error: error in try/catch from ${content}`).catch(error => console.error(error));
